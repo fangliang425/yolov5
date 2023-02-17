@@ -377,7 +377,7 @@ def export_pb(keras_model, file, prefix=colorstr('TensorFlow GraphDef:')):
 
 
 @try_export
-def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=colorstr('TensorFlow Lite:'), per_tensor=False):
+def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=colorstr('TensorFlow Lite:'), per_tensor=False, int16_activation=False):
     # YOLOv5 TensorFlow Lite export
     import tensorflow as tf
 
@@ -401,6 +401,11 @@ def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=c
         if per_tensor:
             converter._experimental_disable_per_channel = True
             LOGGER.info(f'Using per-tensor quantization...')
+        if int16_activation:
+            converter.target_spec.supported_ops = [tf.lite.OpsSet.EXPERIMENTAL_TFLITE_BUILTINS_ACTIVATIONS_INT16_WEIGHTS_INT8]
+            converter.inference_input_type = tf.int16
+            converter.inference_output_type = tf.int16
+            LOGGER.info(f'Using int16 activation quantization...')
         f = str(file).replace('.pt', '-int8.tflite')
     if nms or agnostic_nms:
         converter.target_spec.supported_ops.append(tf.lite.OpsSet.SELECT_TF_OPS)
@@ -523,6 +528,7 @@ def run(
         optimize=False,  # TorchScript: optimize for mobile
         int8=False,  # CoreML/TF INT8 quantization
         per_tensor=False,  # per-tensor quantization for INT8 tflite
+        int16_activation=False,  # INT16 activation and INT8 weights
         dynamic=False,  # ONNX/TF/TensorRT: dynamic axes
         simplify=False,  # ONNX: simplify model
         opset=12,  # ONNX: opset version
@@ -606,7 +612,7 @@ def run(
         if pb or tfjs:  # pb prerequisite to tfjs
             f[6], _ = export_pb(s_model, file)
         if tflite or edgetpu:
-            f[7], _ = export_tflite(s_model, im, file, int8 or edgetpu, data=data, nms=nms, agnostic_nms=agnostic_nms, per_tensor=per_tensor)
+            f[7], _ = export_tflite(s_model, im, file, int8 or edgetpu, data=data, nms=nms, agnostic_nms=agnostic_nms, per_tensor=per_tensor, int16_activation=int16_activation)
             if edgetpu:
                 f[8], _ = export_edgetpu(file)
             add_tflite_metadata(f[8] or f[7], metadata, num_outputs=len(s_model.outputs))
@@ -646,6 +652,7 @@ def parse_opt(known=False):
     parser.add_argument('--optimize', action='store_true', help='TorchScript: optimize for mobile')
     parser.add_argument('--int8', action='store_true', help='CoreML/TF INT8 quantization')
     parser.add_argument('--per_tensor', action='store_true', help='per-tensor quantization for INT8 tflite')
+    parser.add_argument('--int16_activation', action='store_true', help='INT16 activation and INT8 weights')
     parser.add_argument('--dynamic', action='store_true', help='ONNX/TF/TensorRT: dynamic axes')
     parser.add_argument('--simplify', action='store_true', help='ONNX: simplify model')
     parser.add_argument('--opset', type=int, default=17, help='ONNX: opset version')
