@@ -377,7 +377,7 @@ def export_pb(keras_model, file, prefix=colorstr('TensorFlow GraphDef:')):
 
 
 @try_export
-def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=colorstr('TensorFlow Lite:'), per_tensor=False, int16_activation=False):
+def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=colorstr('TensorFlow Lite:'), per_tensor=True, int16_activation=False):
     # YOLOv5 TensorFlow Lite export
     import tensorflow as tf
 
